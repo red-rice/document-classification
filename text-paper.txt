@@ -1,0 +1,2702 @@
+Neurocomputing 653 (2025) 131241
+
+Contents lists available at ScienceDirect
+
+Neurocomputing
+journal homepage: www.elsevier.com/locate/neucom
+
+Deep metric learning for end-to-end document classification
+Tri-Cong Pham a, b,∗ iD, Mickaël Coustaty a iD, Antoine Doucet a iD, Aurélie Joseph b iD,
+Vincent Poulain d’Andecy b iD
+a
+b
+
+L3i, La Rochelle Université, Avenue Michel Crépeau, La Rochelle, 17042, France
+Yooz, 1 Rue Fleming, La Rochelle, 17000, France
+
+ARTICLE INFO
+
+ABSTRACT
+
+Communicated by Y. Lai
+
+Document classification systems become more and more complex with the need to deal with new document formats or categories while obtaining a low error rate when classifying more and more documents. Such systems
+need to have important features including (1) the ability to eliminate ambiguity to improve precision or reduce
+the error rate, (2) the capability to detect and reject documents belonging to new categories or new variations.
+Previous studies often focused on closed datasets or solely on the problem of novelty detection, without evaluating the ability to reject ambiguous results after the novelty detection. In this paper, we propose an end-to-end
+document classification algorithm including both novelty and ambiguity rejection. The proposed algorithm utilizes deep metric learning to compact the knowledge space, and then uses the last hidden layer’s features as
+input for an unsupervised KNN-based method for novelty and ambiguity rejection. Extensive experiments and
+analysis on private and public benchmark datasets demonstrate the effectiveness of our proposed algorithm. The
+algorithm provides the capability to handle new documents while effectively rejecting ambiguity to enhance the
+precision, recall of known categories, and coverage rate of the end-to-end document classification system.
+
+Keywords:
+Document classification
+Deep metric learning
+Novelty detection
+Ambiguity rejection
+KNN
+
+1. Introduction
+Documents are used every day for supporting different administrative tasks, for instance in the financial and administrative domains.
+Document analysis and understanding remain a challenge as they involve the need to read and understand the textual content and understand its spatial organization. As reading a document is a complex task,
+a first step in recent systems consists of classifying documents in order
+to detect their class/objective and then define the process to be used for
+the final task. This document classification step requires high accuracy
+because any error will lead to a waste of time and money, and finally call
+for a human operator to manually reject the documents or correct the
+mistake. Document classification faces two main difficulties which are,
+on the one hand, the large number of document categories (more than
+200 document categories are generally used in industrial systems) and
+on the other hand, the evolution of these document categories as new
+and unseen formats of documents are generated every day. For example,
+in financial applications, invoices, purchase orders, or bank statements
+may have different templates, field locations, and formats depending on
+the company or software used. Even the format of the same category of
+
+∗
+
+document from the same company may change over time. These difficulties make it very challenging to develop a system with high accuracy
+that is also able to detect new categories or formats.
+Powered by parallel computing capabilities and big data, deep learning networks have achieved significant performance in various fields
+from NLP [1,2] to Computer Vision (CV) [3], leading to great impact on
+academic research and commercial applications. The algorithms are also
+used in document analysis systems [4,5], especially for document classification [6–8]. In the studies conducted so far, classifiers are trained on
+a dataset consisting of several categories and evaluated on a test dataset
+containing unseen documents belonging to the same set of categories.
+However, in reality, there are novel/unseen documents that do not belong to these categories nor have novel formats of existing categories
+(see Fig. 1). In this case, the classifiers need to categorize them as novel
+documents or an unknown category. Most novelty detection studies have
+been in the field of computer vision [9–11]. Although there are studies [12] on novelty detection for document images, the number is still
+limited.
+While many studies have applied deep learning to document classification, the majority of them have concentrated on closed datasets
+
+Corresponding author at: L3i, La Rochelle Université, Avenue Michel Crépeau, La Rochelle, 17042, France.
+Email address: cong.pham@univ-lr.fr (T.-C. Pham).
+
+https://doi.org/10.1016/j.neucom.2025.131241
+Received 26 May 2025; Received in revised form 11 July 2025; Accepted 7 August 2025
+Available online 8 August 2025
+0925-2312/© 2025 The Authors. Published by Elsevier B.V. This is an open access article under the CC BY license (http://creativecommons.org/licenses/by/4.0/).
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 1. Samples of different document categories in our private administrative dataset which illustrate the document images that are in distribution (the 1st row with
+blue border) and out of distribution (the 2nd row with red border). From left to right of the first row: Order, Account Due, Invoice, and Bank Statements; and of the
+second row: Debit Mandate, Debit Statement, Mail Dues, and Insurance Daily Allowance.
+
+of known categories and the few studies that have focused on novelty
+detection have not, however, conducted a comprehensive evaluation, including assessing the overall ambiguity rejection [13] capabilities of the
+classification step when incorporating novelty detection into a complete
+pipeline for practical applications. When these modules are combined
+into a full pipeline, the fundamental question is whether the holistic algorithm improves precision compared to the scenario where no rejection
+module is used? Furthermore, for low baseline accuracy classification
+algorithms, typically around 90 %, the critical question is whether a rejection module can boost precision to around 99 % to achieve a 1 %
+error rate for real-world applications?
+Thus, in this study, we propose a unified end-to-end document classification algorithm that integrates both novelty and ambiguity rejection.
+The key contributions of this research are as follows:
+
+information can be text, layout, and visual information. This information can be used separately or combined together by advanced machine
+learning techniques such as Natural Language Processing (NLP) [1,2],
+Deep Convolution Neural Networks (Deep CNN) [3], and multimodal
+deep learning [4–6]. With NLP approaches [13], text information is
+extracted from document images using Optical Character Recognition
+(OCR), then using NLP such as BERT-based models are used to classify the text into category. Meanwhile, with the approach of Deep CNN
+[12,14], the visual information is extracted by CNN and then classified into category by fully connected layers. Recently, many studies
+[5,7] have used multimodal deep learning to extract both text and visual information, then combine them to classify documents. Some of
+the studies [15,16] use fusion methods to leverage visual, textual document images into a joint embedding space to perform entity recognition
+on documents. The others [4,5] utilize an end-to-end trainable deep
+architecture.
+Most recent studies [4,5,8] have focused on combining positional,
+textual, and visual features in an end-to-end trainable network to
+perform document classification task and are evaluated on the publicly available RVL-CDIP (Ryerson Vision Lab Complex Document
+Information Processing) [14] dataset. This dataset is a subset of the IITCDIP Test Collection [14], consists of gray-scale labeled documents of 16
+categories, and includes 320 K training documents, 40 K documents for
+validation and test sets. On the RVL-CDIP test dataset, the DocFormer
+End-to-End Transformer published by Appalaraju et al. [5] performed
+the highest accuracy at 96.17 %. The second place is LayoutLMv3 published by Xu et al. [4] with 95.44 % accuracy. Next algorithm is the
+SelfDoc published by Li et al. [8] with an accuracy of 93.81 %. These researchers proposed cross-modal learning in the model pre-training stage
+to leverage positional, textual, and visual information via self-supervised
+learning from millions of unlabeled document images of public datasets
+such as IIT-CDIP [14]. Afterward, the authors fine-tuned the models on
+RVL-CDIP [14] dataset for downstream task of document classification. Besides, by utilizing the visual and textual features of documents,
+Bakkali et al. [15] employed a cross-modal deep network to perform
+end-to-end document image classification. Their proposed cross-modal
+network was trained and validated on RVL-CDIP [14] test dataset. The
+algorithm outperformed LayoutLM [17] by 2.63 % in classification accuracy. In order to apply document classification method for small private
+dataset, Mahamoud et al. [16] proposed a method using multimodality
+and attention patterns on images and text. The model was trained and
+tested on the French dataset and achieved very high accuracy at 98.2 %.
+
+1. A novel end-to-end framework for document classification that incorporates novelty and ambiguity rejection. The framework uses
+embedding features from the last hidden layers of a deep network and integrates a 𝑘th nearest neighbor (KNN) algorithm with
+Euclidean distance as the scoring function to effectively handle
+outliers and ambiguous cases.
+2. A novel deep metric learning approach is proposed, incorporating a custom margin-based contrastive loss function, to optimize BERT-based networks, effectively compacting the knowledge
+space. This enhances the performance of the novelty and ambiguity rejector, leading to significant improvements in both precision
+and recall for the classification pipeline.
+3. We perform thorough experimental evaluations comparing the
+proposed rejection method against existing approaches using both
+private and public datasets. Results demonstrate that the proposed
+method consistently outperforms baseline methods in both novelty
+detection and ambiguity rejection within an integrated pipeline.
+4. The proposed algorithm achieves exceptional performance metrics, including high precision, recall, and coverage on private
+datasets. Additionally, it achieves state-of-the-art novelty detection results on the public RVL-CDIP dataset.
+2. Related work
+2.1. Document classification
+Document classification methods use clues hidden in the document’s
+content to classify a given document into a category. This contextual
+2
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+However, compared to BERT-based method that utilizes only textual
+information, the difference in accuracy is not significant, only 0.7 %.
+Current research on document classification has primarily focused
+on optimizing algorithms for closed datasets, without emphasis on developing an end-to-end pipeline for real-world applications. In such
+applications, the input data consists not only of documents belonging
+to known categories but also includes novel documents from new or
+unknown categories. These applications need to be capable of novelty
+rejection while also achieving highly efficient classification on selected
+documents.
+
+to document classification is challenging. Supervised methods face difficulties due to the constant emergence of new document categories or
+formats, making it hard to collect diverse OOD datasets. Self-supervised
+approaches are restricted by the limitations of text augmentation techniques, unlike their broader algorithms in image tasks. Furthermore,
+no comprehensive study has evaluated the overall performance of an
+application when integrating novelty detection algorithms with classification, a crucial aspect for practical applications. The major questions
+for such an application are: (1) Does novelty detection contribute to increasing the precision of the classification application? (2) To achieve an
+acceptable precision level (such as 99 %), what percentage of the input
+documents can the application effectively process?
+
+2.2. Novelty detection
+Novelty detection is a critical task for deploying machine learning
+models in the real-world applications. We also call to it as out-ofdistribution (OOD) detection where a given sample is detected as novelty
+(or OOD) if it is relatively far away from known in-distribution (ID)
+samples [18–20]. Depending on the accessibility of OOD data, novelty
+detection methods are categorized into three kinds: supervised [21], selfsupervised [22], and unsupervised [9,18] approaches. In the supervised
+approach, through training on both ID and OOD data, models are expected to generalize information from both ID and OOD data, thereby
+being able to recognize OOD samples [21]. However, this approach faces
+the challenge of collecting a sufficiently large dataset that covers all possible OOD cases in reality, which is infeasible. This is not only because
+OOD data is highly diverse, but also because in the case of administrative documents, new data categories continuously emerge whenever
+new services are introduced. On the other hand, in order to generalize effectively on the ID data and exhibit distinctions from OOD data,
+the self-supervised methods [22] employ augmentation techniques (e.g.,
+image rotation) on the ID dataset to enable the model to learn a feature
+space in which the inter-class separation is greater than the intra-class
+separation. However, this method may be challenging to apply in the
+context of natural language due to the limitations of text augmentation
+techniques. Unsupervised methods only utilize ID data during training [11,18,23]. Initially, a classifier is trained on the ID dataset. Then,
+this classifier is employed to extract features. A scoring function transforms these features of a given sample into a real number. By using the ID
+data, an appropriate threshold is chosen based on the desired true positive rate. The OOD detector classifies the input as OOD if the score is
+smaller than the selected threshold value. The extracted features can be
+the class probabilities [24–26] or other latent space metrics [9,10,27].
+Recent studies on novelty detection in pattern recognition have achieved
+state-of-the-art efficacy, often focusing on utilizing embedding features
+and Euclidean distance [9,11,18].
+Despite being extensively studied in the field of computer vision,
+out-of-distribution detection has not received much attention in the
+field of natural language processing and document analysis. Shu et al.,
+2017 [25] build a multi-class classifier with a 1-vs-rest final layer of
+sigmoid rather than softmax then use Gaussian fitting to evaluate thresholds for OOD Detection. Cho et al. [28] enhance OOD detection in NLP
+by leveraging intermediate representations and show the potential of intermediate representations in OOD detection. Wu et al. [29] and Zhou
+et al. [30] improve OOD detection performance by using contrastive
+learning. Gunel et al. [31] apply Supervised Contrastive Learning for
+Pre-trained Language Models to enhance OOD detection. Most recently,
+Larson et al. [12] in 2022, have introduced a novel dataset (namely
+RVL-CDIP-O) for evaluating the out-of-distribution performance of document classification. The authors conducted experiments to compare
+the effectiveness of novelty detection of different network architectures
+combined with OOD detection methods on this dataset after training
+the network on the popular RVL-CDIP dataset. Their highest AUC and
+FPR@TPR95 were 92.30 % and 46.10 %, respectively.
+Research on novelty detection for document classification is still limited, primarily at a fundamental comparison level using the RVL-CDIP
+dataset. While many algorithms exist in computer vision, adapting them
+
+2.3. Deep metric learning
+Overall, the Deep Metric Learning (namely DML) [32,33] is a family of methods that focus on optimizing neural networks based on the
+principle of enhancing the similarity or dissimilarity between semantic
+features of samples depending on whether the samples belong to the
+same object or different objects. DML was conceived based on the idea
+of a contrastive loss [34–36]. Bromley et al. [37] proposed the first contrastive loss function for Siamese Networks in 1993. The loss function
+measures the similarity between every pair of samples, where positive
+pairs belong to the same category, and negative pairs belong to different categories. This loss function was later formally defined by Chopra
+et al. [38] with application to Face Verification in 2005, where positive
+pairs belong to the same person. Similarly, the Triplet loss was proposed
+in studies by Schroff et al. [39], using triplets: an anchor, a positive
+example, and a negative example. By using Triplet Loss, the distance
+between an anchor and a positive example, both of which belong to
+the same identity, is minimized, while the distance between the anchor
+and a negative example of a different identity is maximized. Building on
+that, many studies have focused on applying contrastive learning to both
+self-supervised and supervised learning. In self-supervised contrastive
+learning [36], where data lacks labels, a positive pair often involves data
+augmentations of the same sample, and negative pairs are constructed
+using the anchor and randomly selected samples from the mini-batch.
+It has also been utilized and has achieved high effectiveness in supervised learning with a labeled dataset [32,35,40], where positive samples
+belong to the same label, and negative samples belong to different labels.
+Recently, DML has been employed in numerous studies [9,18,26] to
+optimize neural networks, thereby enhancing the effectiveness of the
+novelty detection and Out-of-distribution detection problems. Cevikalp
+et al. [9] employed a supervised center contrastive loss function to train
+their neural networks, followed by utilizing the Euclidean distance to
+the class centers as a score function for novelty detection. This approach achieved state-of-the-art accuracies on the CIFAR-10, MNIST,
+and Fashion-MNIST datasets. Yang et al. [26] designed a novel onevs-all loss to optimize their networks, followed by utilizing embedding
+feature distance-based rejection and probability-based rejection to improve novelty detection performance. Sun et al. [11] utilized supervised
+contrastive learning to optimize a CNN and subsequently combined
+it with K-nearest neighbors to improve the performance of Out-ofdistribution detection on several image benchmark datasets. Zhou et al.
+[30] employed margin-based contrastive learning to optimize neural
+network then used the Mahalanobis distance in the model’s penultimate
+layer to detect out-of-distribution instances in Sentiment Analysis, Topic
+Classification, and Question Classification. However, there has not yet
+been any research assessing the effectiveness of DML for the problem of
+novelty and ambiguity rejection.
+3. Proposed method
+3.1. Unified end-to-end document classification framework
+In this study, we propose a novel end-to-end framework for document classification that integrates novelty and ambiguity rejection, as
+3
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 2. Overview of the proposed end-to-end document classification framework with novelty and ambiguity rejection. The classifier is created by BERT-based
+transformer, and the novelty and ambiguity rejector is built by the KNN algorithm, utilizing the last hidden layer’s features and Euclidean distance in the score
+function. The final classification result for a given document is: (1) Novelty (OOD); or (2) ID along with the document’s label. The colors cobalt blue, lavender pink,
+and alloy orange respectively represent the information and data flow of the documents in the train, test, and novelty sets.
+
+illustrated in Fig. 2. This framework is designed to accurately classify indistribution documents while rejecting out-of-distribution or ambiguous
+documents. It consists of three main components: Classifier, Novelty &
+Ambiguity Rejector, and Consensus Agreement components. The classi𝑡𝑟𝑎𝑖𝑛 , enabling it to function
+fier is trained using deep metric learning on 𝐷𝑖𝑛
+as an encoder for extracting embedding features and logits. Initially,
+𝑡𝑟𝑎𝑖𝑛 are extracted, and the
+the features and logits of the documents in 𝐷𝑖𝑛
+features are indexed for 𝑘-nearest neighbor search, which is a crucial
+step for the rejector in subsequent processes. Then, the embedding features of each document are used to find the 𝑘-nearest neighbors, and the
+Euclidean distance to the 𝑘th nearest neighbor is used as the final score
+for the rejector. Finally, the consensus agreement component determines
+the final result by aggregating the novelty results and the consensus between the logits output and the true label of the 𝑘th nearest neighbor.
+𝑡𝑒𝑠𝑡 ) and a pre-defined true positive rate (TPR) are
+ID test documents (𝐷𝑖𝑛
+used to determine the threshold for the novelty rejector. The threshold,
+𝑡𝑒𝑠𝑡 set is
+𝜃, must ensure that the acceptance rate of documents in the 𝐷𝑖𝑛
+at least equal to this TPR. For each new document, such as those in the
+OOD documents (𝐷𝑜𝑜𝑑 ), the features and logits are first extracted, followed by finding the 𝑘-nearest neighbors, calculating the novelty score,
+and determining the label or rejecting it using the agreement module
+𝑡𝑒𝑠𝑡 and 𝐷
+and the threshold 𝜃. In this study, we use 𝐷𝑖𝑛
+𝑜𝑜𝑑 to evaluate the
+performance of the proposed method with different pre-defined TPRs.
+
+documents (Line 2). Next, we compute 𝐿𝑝𝑜𝑠 as the average loss of the
+document and its positive documents. The loss between two positive
+documents is computed as the Euclidean distance between the two embedding features of the documents. After that, we compute 𝐿𝑛𝑒𝑔 , which
+is the average loss of the document and its negative documents. To
+compute the loss between two negative documents, we calculate the
+Euclidean distance between the two embedding features of the documents. If this distance is greater than the Margin, the loss is zero;
+otherwise, the loss is the difference between the Euclidean distance and
+the Margin. When 𝐿𝑝𝑜𝑠 is optimized closer to zero, positive documents
+become closer to each other. Conversely, when 𝐿𝑛𝑒𝑔 is optimized closer
+to zero, negative documents are pushed further apart, with the minimum distance being the Margin. 𝐿𝑚𝑎𝑟𝑔𝑖𝑛 is the combination of 𝐿𝑝𝑜𝑠 and
+𝐿𝑛𝑒𝑔 (Line 6). The final loss 𝐿 is the combination of 𝐿𝐶𝐸 (Cross Entropy
+loss) and 𝐿𝑚𝑎𝑟𝑔𝑖𝑛 . To adjust the impact of Margin, 𝐿𝑝𝑜𝑠 , 𝐿𝑛𝑒𝑔 , and 𝐿𝑚𝑎𝑟𝑔𝑖𝑛
+on the final loss 𝐿, we utilize parameters 𝛼, 𝛽, and 𝜆.
+3.2.2. Custom mini-batch logic
+Typically, when using contrastive loss functions, studies often employ large mini-batch sizes of around a thousand samples per minibatch [35]. However, our private dataset is imbalanced and some minor
+categories have a maximum of only 20 documents so we chose a minibatch size of 128 documents per step. To ensure the effectiveness of
+the custom contrastive loss functions, we customize mini-batch logic to
+
+3.2. Classifier and deep metric learning
+In this study, the classifier is a BERT-based transformer, with OCR
+text from document images as input. The embedding vector size is 768,
+while the logits vector size equals the number of categories of 𝐷𝑖𝑛 . We
+design a custom loss function to enhance the discriminative power of
+learned representations by encouraging similar instances to be closer to
+each other while pushing dissimilar instances farther apart. In addition,
+to enhance the efficiency of the custom loss function during network
+optimization, we also customize the mini-batch logic to adapt to our
+private document dataset.
+
+Algorithm 1 Custom margin-based contrastive loss function.
+𝐴(𝑖) = {1, 2, .., 𝑀} ⧵ {𝑖} is the set of all instances. 𝑃 (𝑖) = {𝑝 ∈ 𝐴(𝑖) ∶
+𝑦𝑖 = 𝑦𝑝 } is the set of positive instances from the same category as 𝑖.
+𝑁(𝑖) = {𝑛 ∈ 𝐴(𝑖) ∶ 𝑦𝑖 ≠ 𝑦𝑛 } is the set of negative instances from the
+different category as 𝑖. ℎ ∈ 𝑅𝑑 is the unnormalized embedding features
+of the last hidden layer. 𝑧 is the L2-normalized of ℎ.
+1: function custom_margin_loss(𝜆, 𝛼, 𝛽)
+2:
+
+𝑀
+
+𝜉 ← max max ‖𝑧𝑖 − 𝑧𝑝 ‖2
+𝑖=1 𝑝∈𝑃 (𝑖)
+
+⊳ maximum distance between positive
+
+pairs
+3:
+𝜉←𝜉∗𝛼
+⊳ Margin with adjustable parameter
+∑
+∑
+1
+4:
+𝐿𝑝𝑜𝑠 ← 𝑀
+‖𝑧𝑖 − 𝑧𝑝 ‖2
+⊳ Positive documents are
+𝑖=1 |𝑃 (𝑖)|
+
+3.2.1. Custom margin-based loss
+Fig. 3 illustrates the method of using contrastive loss to compress
+knowledge of documents in the training set. In this study, we propose a
+Custom Margin-based Loss function at the mini-batch level, as outlined
+in Algorithm 1. This is based on Margin-based contrastive loss [30]. In
+which, documents belonging to the same category are referred to as
+positive documents, while those belonging to different categories are
+referred to as negative documents. The main idea of the margin loss
+is to ensure that the distance between any two negative documents
+is greater than the maximum distance between any two positive documents. At each step of the training process, firstly, we calculate the
+Margin, which represents the maximum distance between two positive
+
+𝑝∈𝑃 (𝑖)
+
+attracted as close as possible
+∑𝑀
+∑
+1
+5:
+𝐿𝑛𝑒𝑔 ← 𝑖=1
+(𝜉 − ‖𝑧𝑖 − 𝑧𝑛 ‖2 )+
+|𝑁(𝑖)|
+
+⊳ Negative documents
+
+𝑛∈𝑁 (𝑖)
+
+are repelled as far as possible
+1
+𝐿𝑚𝑎𝑟𝑔 𝑖𝑛 ← 𝑑𝑀
+(𝐿𝑝𝑜𝑠 ∗ 𝛽 + 𝐿𝑛𝑒𝑔 )
+⊳ Margin loss with adjustable
+parameter
+7:
+𝐿 ← 𝐿𝑐 𝑒 + 𝜆𝐿𝑚𝑎𝑟𝑔𝑖𝑛
+⊳ 𝐿𝑐𝑒 is categorical cross-entropy loss
+8:
+return 𝐿
+9: end function
+
+6:
+
+4
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 3. The overall process of deep metric learning uses contrastive loss to compact in-distribution knowledge. Documents of the same category are optimized to be
+as close to each other as possible, while being distant from documents of different categories.
+
+select at least 4 and 8 documents from each category at each step on
+private and public datasets, respectively.
+
+Algorithm 2 Novelty detection using 𝑘th NN and Euclidean distance.
+𝑡𝑒𝑠𝑡 ≥ 𝑡𝑝𝑟
+Function 1: Threshold 𝜃 satisfies that True Positive Rate of 𝐷𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛 , 𝐷𝑡𝑒𝑠𝑡 , 𝑘, 𝑡𝑝𝑟)
+1: function threshold_estimation(𝐷𝑖𝑛
+𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛
+2:
+𝑋𝑖𝑛 ← Encode(𝐷𝑖𝑛 )
+⊳ Encode ∀𝑑 ∈ 𝐷𝑖𝑛
+𝑡𝑒𝑠𝑡
+𝑡𝑒𝑠𝑡
+3:
+𝑛 ← cardinality(𝐷𝑖𝑛 )
+⊳ The number of documents ∈ 𝐷𝑖𝑛
+𝑡𝑒𝑠𝑡
+4:
+Scores ← [0] ∗ 𝑛
+⊳ Initial scores array for 𝑛 documents ∈ 𝐷𝑖𝑛
+𝑡𝑒𝑠𝑡 do
+5:
+for 𝑑𝑖 ∈ 𝐷𝑖𝑛
+6:
+𝑥𝑖 ← Encode(𝑑𝑖 )
+𝑖
+𝑡𝑟𝑎𝑖𝑛 of 𝑥
+7:
+𝑋𝑛𝑒𝑎𝑟𝑒𝑠𝑡
+← 𝑘 nearest neighbors ∈ 𝑋𝑖𝑛
+𝑖
+𝑖
+8:
+𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡 ← the 𝑘th neighbor ∈ 𝑋𝑛𝑒𝑎𝑟𝑒𝑠𝑡
+9:
+Scores[𝑖] ← −EuclideanDistance(𝑥𝑖 , 𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡 ) ⊳ Max score is 0
+10:
+end for
+11:
+Scores ← sort(Scores)
+⊳ Descending sort
+12:
+𝑖𝑛𝑑 ← ceil(𝑡𝑝𝑟 ∗ 𝑛)
+⊳ The index of the last accepted document
+13:
+𝑡ℎ𝑟𝑒𝑠ℎ𝑜𝑙𝑑 ← Scores[𝑖𝑛𝑑]
+14:
+return 𝑡ℎ𝑟𝑒𝑠ℎ𝑜𝑙𝑑
+15: end function
+
+3.3. Novelty and ambiguity rejector
+In this study, the trained classifier is used as Encode ∶ 𝐷𝑖𝑛 → 𝑅𝑚
+(𝑚=768), meaning that for each document 𝑑, we can determine the
+embedding feature 𝑥 = Encode(𝑑). We use the Euclidean distance to
+the 𝑘th nearest neighbor as final score, as shown in Formulas 1 and 2,
+and apply this score to determine whether a document 𝑑 is novel or not,
+as a binary classification problem in Formula 3. In addition to detecting
+novelty, this algorithm also helps eliminate ambiguous documents in the
+in-distribution set, thereby improving the precision of the final result.
+√
+√𝑚
+√∑ (
+)2
+𝑝 −𝑞
+EuclideanDistance (𝑝, 𝑞) = √
+𝑖
+
+𝑖
+
+(1)
+
+𝑖=1
+
+(
+)
+Score (𝑥) = −EuclideanDistance 𝑥, 𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡
+Novelty(𝑑) =
+
+{
+No (In)
+Yes (Out)
+
+(2)
+
+Function 2: Novelty Detection by threshold = 𝜃
+if Score(𝑥) ≥ 𝜃
+otherwise
+
+𝑡𝑟𝑎𝑖𝑛 , 𝑘, 𝑑, 𝜃)
+1: function novelty_detection(𝐷𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛 ← Encode(𝐷𝑡𝑟𝑎𝑖𝑛 )
+2:
+𝑋𝑖𝑛
+𝑖𝑛
+3:
+𝑥 ← Encode(𝑑)
+𝑑
+𝑡𝑟𝑎𝑖𝑛 of 𝑥
+4:
+𝑋𝑛𝑒𝑎𝑟𝑒𝑠𝑡
+← 𝑘 nearest neighbors ∈ 𝑋𝑖𝑛
+𝑑
+5:
+𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡 ← the 𝑘th neighbor of 𝑋𝑛𝑒𝑎𝑟𝑒𝑠𝑡
+6:
+𝑆𝑐𝑜𝑟𝑒 ← −EuclideanDistance(𝑥, 𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡 )
+7:
+if 𝑆𝑐𝑜𝑟𝑒 ≥ 𝜃 then
+8:
+𝑛𝑜𝑣𝑒𝑙𝑡𝑦 ← No (In)
+9:
+else
+10:
+𝑛𝑜𝑣𝑒𝑙𝑡𝑦 ← Yes (Out)
+11:
+end if
+12:
+return 𝑛𝑜𝑣𝑒𝑙𝑡𝑦
+13: end function
+
+(3)
+
+where vector 𝑝 = [𝑝1 , 𝑝2 , … , 𝑝𝑚 ] and vector 𝑞 = [𝑞1 , 𝑞2 , … , 𝑞𝑚 ] are two
+𝑚-dimensional embedding vectors; 𝑥 and 𝑥𝑘𝑛𝑒𝑎𝑟𝑒𝑠𝑡 are the embedding
+features of document 𝑑 and its 𝑘th nearest document, respectively.
+Algorithm 2 details the steps for determining the novelty threshold
+𝜃 (Function 1) and performing novelty detection (Function 2). In order
+𝑡𝑟𝑎𝑖𝑛
+to estimate 𝜃, the embedding features of the trained documents 𝐷𝑖𝑛
+𝑡𝑟𝑎𝑖𝑛 . These 𝑋 𝑡𝑟𝑎𝑖𝑛 features are then used
+are extracted and denoted as 𝑋𝑖𝑛
+𝑖𝑛
+𝑡𝑒𝑠𝑡 according to Formula
+to compute Scores[𝑖] for each document 𝑑𝑖 in 𝐷𝑖𝑛
+2. To ensure the true positive rate (tpr), at least 𝑛 ⋅ tpr documents in
+𝑡𝑒𝑠𝑡 must be correctly classified, where 𝑛 is the total number of docu𝐷𝑖𝑛
+𝑡𝑒𝑠𝑡 . Therefore, these scores are sorted in descending order,
+ments in 𝐷𝑖𝑛
+and the score of the (𝑛 ⋅ tpr)-th element is the threshold that satisfies this
+condition. We use the threshold 𝜃 for inference to detect novelty. Given
+𝑡𝑟𝑎𝑖𝑛 is
+a document 𝑑, the embedding feature 𝑥 is extracted, and then 𝑋𝑖𝑛
+used to find the 𝑘-nearest neighbors and compute the Score as described
+in Formula 2. If this Score is smaller than the threshold 𝜃, the document
+is considered novel.
+
+4. Experimental results
+4.1. Materials
+In this work, we use two datasets to evaluate the effectiveness
+of proposed method including: (1) our private French administrative
+document dataset; and (2) the well-known English, large, and public
+RVL-CDIP [12,14] dataset. In order to evaluate the novelty detection efficiency, we have three scenarios named Private Small, Private Tiny, and
+RVL-CDIP respectively. With each scenario, we need to split the datasets
+into two sets (1) the set of documents of known categories (namely
+𝐷𝑖𝑛 ); and (2) the set of novel documents (namely 𝐷𝑜𝑜𝑑 ). We only use
+𝑡𝑟𝑎𝑖𝑛 to train the network, and 𝐷
+the documents in 𝐷𝑖𝑛
+𝑜𝑜𝑑 to evaluate the
+novelty detection efficiency. The detailed information of these scenarios
+is shown in Table 1.
+Our private dataset has 23,539 images belonging to 47 categories
+(Account Dues, Account Invoice, Bank Statements, Insurance Daily
+
+3.4. Consensus agreement
+In this study, we use a consensus score between the logits-based
+classification outcomes and the true label of the 𝑘th nearest neighbor.
+Specifically, if the classification output differs from the true label of the
+𝑘th nearest neighbor, we classify the document as a novelty document or
+reject the document without considering the OOD score calculated in the
+Section 3.3. In the experimental section, we compare both KNN-based
+rejection methods: (1) 𝑘th nearest neighbor without an agreement score
+(namely KNN); and (2) 𝑘th nearest neighbor with an agreement score
+(namely KNN*).
+5
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+stands for False Positive, when a given OOD document is predicted as
+ID; and TN stands for True Negative, when a given OOD document is
+predicted as OOD. The higher TPR value the model achieves, the better
+it is, on the contrary, the lower FPR value the model achieves, the better
+it is. Besides, (TP + FN) and (TP + FP + TN + FN) represent the total
+𝑡𝑒𝑠𝑡 set and 𝐷𝑡𝑒𝑠𝑡 ∪ 𝐷
+number of documents in the 𝐷𝑖𝑛
+𝑜𝑜𝑑 set, respectively,
+𝑖𝑛
+and these are constant values. Therefore, REC and COV are directly proportional to each other. REC always is higher than COV, and the higher
+REC, the higher COV.
+
+Table 1
+Detail information (including: The number of documents in train, validation and
+test datasets; and the number of categories) of Private Small, Private Tiny, and
+RVL-CDIP datasets. 𝐷𝑖𝑛 represents in distribution data, 𝐷𝑜𝑜𝑑 represents out-ofdistribution data.
+#
+
+1
+2
+3
+4
+5
+
+Type
+
+Train
+Validation
+Test
+Total
+Categories
+
+Private small
+
+Private tiny
+
+𝐷𝑖𝑛
+
+𝐷𝑜𝑜𝑑
+
+𝐷𝑖𝑛
+
+𝐷𝑜𝑜𝑑
+
+RVL-CDIP
+𝐷𝑖𝑛
+
+𝐷𝑜𝑜𝑑
+
+15,898
+1766
+5825
+23,489
+36
+
+0
+0
+50
+50
+11
+
+15,287
+1699
+5623
+22,609
+23
+
+0
+0
+930
+930
+24
+
+300,162
+37,541
+37,420
+375,123
+16
+
+0
+0
+2799
+2,799
+–
+
+4.3. Experimental setting
+In this study, in order to evaluate the effectiveness of our proposed
+novelty detection framework for documents, after training classifiers by
+𝑡𝑟𝑎𝑖𝑛 dataset, we use the best accuracy
+supervised learning on only the 𝐷𝑖𝑛
+model on validation dataset as the final model. Next, performance of the
+𝑡𝑒𝑠𝑡 dataset and novelty detection on
+multi-class classification on the 𝐷𝑖𝑛
+the 𝐷𝑜𝑜𝑑 dataset are evaluated. The study assesses and analyzes experimental results of two BERT-based architectures, including FlauBERT [ 2]
+(for the French corpus) and BERT [1] (for the English corpus). The textual content of the documents is extracted by a third-party OCR engine.
+For novelty detection, we use KNN algorithm using Euclidean distance
+of the 𝑘th nearest-neighbor as score function. Meta’s Faiss library [41]
+is used to optimize the speed of KNN. Our private dataset contains certain categories with a limited number of documents in the training set.
+Consequently, we have opted to set the value of 𝑘 to 1 for evaluating our method. For the loss functions, we use Supervised Contrastive
+(SCL) [35], Category-Weighted Cross-Entropy (Weight), Cross-Entropy
+(CE), and two Margin-based contrastive losses, namely Margin (𝛼 =
+1.0, 𝛽 = 1.0, and 𝜆 = 2.0) and Margin* (𝛼 = 1.5, 𝛽 = 0.5, and 𝜆 = 4.0).
+The goal of the Margin* is to repel negative documents further than base
+Margin and increase the influence of 𝐿𝑛𝑒𝑔 compared to 𝐿𝑝𝑜𝑠 in final loss
+𝐿. For Category-Weighted loss, the weights are inversely proportional
+to frequency of categories in training datasets.
+
+Allowance, Mail Account Dues, etc.). The dataset is imbalanced. The
+smallest category has only 25 documents while the largest one has 4540
+documents. We can see that 𝐷𝑜𝑜𝑑 has about 25 % and 50 % of categories
+in Private Small and Private Tiny scenarios, respectively.
+Besides, RVL-CDIP [14] corpus is a well-known benchmark dataset
+for document classification. It has 400,000 document images covering
+16 categories (e.g., resume, invoice, letter, memo, etc.). This is a balanced dataset, where each category consists of 25,000 documents, and
+it is divided into a training set of 320,000 documents (20,000 per category), validation and test sets of 40,000 documents each (2500 per
+category per set). In the pre-processing step, we keep only documents
+with at least 10 words for the Text-Modality of the study. This dataset is
+used as the 𝐷𝑖𝑛 set to train and evaluate Text-Modality. In addition, the
+RVL-CDIP-O [12] dataset consisting of 3,415 documents is used in this
+study to evaluate the effectiveness of the out-of-distribution detection.
+After removing documents with less than 10 words, the final 𝐷𝑜𝑜𝑑 set
+has 2799 documents as shown in Table 1.
+4.2. Evaluation metrics
+In order to evaluate novelty detection, we use True Positive Rate
+(TPR), False Positive Rate (FPR), and the area under the receiver operating characteristic curve (AUROC) which is drawn with the y-axis
+as true positive rate and the x-axis as false positive rate. The AUROC
+of test documents ∈ 𝐷𝑖𝑛 ∪ 𝐷𝑜𝑜𝑑 is AUC. Besides, the document classification performance of classifiers is evaluated by three measures: (1)
+Accuracy (ACC); (2) Weighted Precision (wPRE); and (3) Mean Recall
+(mREC). Finally, the end-to-end document classification performance is
+evaluated by four measures: (1) Precision of known categories (PRE);
+(2) Recall of known categories (REC); (3) F1 score; and (4) Coverage
+rate (COV);
+𝑇𝑃
+𝑇𝑃 + 𝐹𝑁
+
+(4)
+
+𝐹𝑃
+𝐹𝑃𝑅 =
+𝐹𝑃 + 𝑇𝑁
+
+(5)
+
+𝑅𝐸𝐶 =
+
+𝑇 𝑃𝑐𝑜𝑟𝑟𝑒𝑐𝑡
+𝑇𝑃 + 𝐹𝑁
+
+(6)
+
+𝑃 𝑅𝐸 =
+
+𝑇 𝑃𝑐𝑜𝑟𝑟𝑒𝑐𝑡
+𝑇𝑃 + 𝐹𝑃
+
+(7)
+
+𝑃 𝑅𝐸 × 𝑅𝐸𝐶
+𝑃 𝑅𝐸 + 𝑅𝐸𝐶
+
+(8)
+
+𝑇 𝑃𝑐𝑜𝑟𝑟𝑒𝑐𝑡
+𝑇𝑃 + 𝐹𝑃 + 𝑇𝑁 + 𝐹𝑁
+
+(9)
+
+𝑇𝑃𝑅 =
+
+𝐹1 = 2 ×
+𝐶𝑂𝑉 =
+
+4.4. Performance evaluation
+In this paper, we used five loss functions to optimize the BERT-based
+classifiers. The classifiers are trained by supervised learning using the
+𝑡𝑟𝑎𝑖𝑛 . Then, we select the best models,
+losses on only documents ∈ 𝐷𝑖𝑛
+𝑣𝑎𝑙𝑖𝑑𝑎𝑡𝑖𝑜𝑛 , as final models. Finally, we
+which have highest accuracy on 𝐷𝑖𝑛
+use the final models to evaluate: (1) classification performance on the
+𝑡𝑒𝑠𝑡 ; (2) novelty detection performance on 𝐷𝑡𝑒𝑠𝑡 and
+test documents of 𝐷𝑖𝑛
+𝑖𝑛
+𝐷𝑜𝑜𝑑 ; (3) combination of rejection and classification performance on
+𝑡𝑒𝑠𝑡 and 𝐷
+𝐷𝑖𝑛
+𝑜𝑜𝑑 ;
+4.4.1. Document classification performances
+𝑡𝑒𝑠𝑡 of classifiers are shown in
+The classification performances on 𝐷𝑖𝑛
+Table 2. Overall, the classifiers are very effective on the private datasets
+of both Small and Tiny scenarios, with all metrics surpassing 98 %, except mRecalls of Small are around 94–95 %. Meanwhile, with the public
+RVL-CDIP dataset, its metrics are lower, at only about 90 %.
+On private document dataset, Margin performs the best among all
+metrics in both Small and Tiny scenarios, but these metrics are not significantly higher than the other losses. Specifically on Small, ACC and PRE
+are 98.76 % and 98.77 %, respectively, only 0.41 % and 0.40 % higher
+than the worst one (SCL). Meanwhile, the gap in mRecall between the
+first and worst ones is higher, equaling 1.02 %, but compared to the
+second one, it’s only 0.35 %. Similarly, on the Tiny dataset, the metrics
+of Margin also exhibit minimal deviations in comparison to other loss
+functions, with the gap being smaller than that observed on the Small
+dataset, only 0.1 % for ACC and wPRE, and ranging from 0.3 % to 0.5 %
+for mRecall. Last but not least, the classifiers achieve higher effectiveness on the Tiny dataset compared to the Small dataset, particularly with
+regard to the mREC metric. The reason for this is that the Small dataset
+is more imbalanced due to the presence of an additional 13 categories,
+
+where Positive means a given document ∈ 𝐷𝑖𝑛 (not novelty label) and
+Negative means a given document ∈ 𝐷𝑜𝑜𝑑 (novelty label). In more detail, TP stands for True Positive, when a given ID document is detected
+as ID; 𝑇 𝑃𝑐 𝑜𝑟𝑟𝑒𝑐𝑡 stands for True Positive and correctly classified when a
+given ID document is detected as ID and correctly classified; FN stands
+for False Negative, when a given ID document is predicted as OOD; FP
+6
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Table 2
+Comparison of classification results on private datasets and RVL-CDIP [14] dataset. The performance is
+𝑡𝑒𝑠𝑡
+𝑡𝑟𝑎𝑖𝑛
+calculated based on test documents ∈ 𝐷𝑖𝑛
+set by the final model which is supervised learning on 𝐷𝑖𝑛
+set.
+#
+
+1
+2
+3
+4
+5
+
+Loss
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+Private small
+
+Private tiny
+
+RVL-CDIP
+
+ACC↑
+
+wPRE↑
+
+mREC↑
+
+ACC↑
+
+wPRE↑
+
+mREC↑
+
+ACC↑
+
+wPRE↑
+
+mREC↑
+
+98.76
+98.52
+98.35
+98.66
+98.63
+
+98.77
+98.55
+98.37
+98.64
+98.60
+
+95.04
+94.02
+94.09
+94.89
+94.82
+
+99.13
+98.99
+99.04
+98.92
+99.08
+
+99.13
+99.00
+99.05
+98.92
+99.07
+
+98.37
+98.11
+98.00
+98.08
+97.88
+
+90.55
+90.52
+90.80
+90.58
+90.49
+
+90.62
+90.59
+90.83
+90.66
+90.59
+
+90.21
+90.19
+90.47
+90.26
+90.19
+
+and these categories have very limited training documents, with only
+tens to a hundred records per category.
+On public RVL-CDIP dataset, performance is significantly lower than
+in the private dataset scenarios. The ACC, wPRE, and mREC metrics are
+all around 90 %, with the SCL performing the best metrics at 90.80 %,
+90.83 %, and 90.47 %, respectively. However, there is not much disparity between the classifiers using the different loss functions, only
+about 0.2 %. These results also do not exhibit significant deviation when
+compared to the research by Larson et al. [12] which employed the
+Visual-Modality (90.50 %) and Multi-Modality of LayoutLMv2 (88.7 %,
+achieved by the author) on a similar training data resource. However,
+they are lower than the reported result of LayoutLMv2 (95.3 %) [7] with
+a larger training dataset.
+Compacted Knowledge In this study, we employ a contrastive loss
+function to compact knowledge space. After training the model with
+each loss function, we utilize features to retrieve the most relevant
+document for each document using the K-nearest neighbors algorithm.
+Subsequently, we compute the distance between these two documents.
+The closer the distance approaches zero, the more similar the two documents are. Fig. 4 illustrates the variance and standard deviation of these
+distances for each category. In summary, compared to CE, all contrastive
+losses contribute to reducing the standard deviation and variance of each
+category in all three scenarios: Private Small, Private Tiny, and Public
+RVL-CDIP. Specifically, SCL achieves the lowest standard deviation, followed by Margin and Margin* losses. On the private dataset, Margin
+compresses knowledge better than Margin*. However, on RVL-CDIP, the
+difference is negligible. There is a notable observation that on the private
+dataset, three categories (namely Account Invoice, Account Due, and
+Burn Order) exhibit significantly different standard deviations compared
+to the remaining categories. On the RVL-CDIP dataset, the probability distribution of the categories is relatively uniform, with minimal
+variation.
+
+in terms of F1 and COV measurements on two private datasets. This is
+because KNN* attempts to eliminate ambiguous cases in classification
+results, so it has to reduce the threshold to achieve the same @TPR95.
+This leads to an increase in FPR.
+On private document dataset, our proposed KNN-based rejection methods are the best algorithms. When combined with KNN, Margin-based
+contrastive losses perform the highest AUC, followed by CE, and lastly
+SCL on both Small and Tiny. For the FPR@TPR95, this order remains unchanged with Margin performing the lowest FPR, followed by Margin*,
+CE, and lastly SCL on the Tiny dataset. However, on the Small dataset,
+CE performs the lowest FPR, followed by Margin*, SCL, and Margin &
+Weight being the least effective.
+On public RVL-CDIP [12,14] dataset, the KNN-CE combination
+achieves the highest AUC of 93.44 %. However, the MahalanobisMargin* combination records the lowest FPR@TPR95 at 35.58 %.
+Nonetheless, with an AUC of 93.44 %, this metric surpasses the current state-of-the-art [12] on the same dataset by 1.14 % (93.44 % vs.
+92.3 %). Our proposed algorithm also significantly reduces the FPR compared to SOTA, achieving FPR values of 35.38 %, 39.80 %, and 39.7 %
+for Mahalanobis-Margin*, KNN-CE, and KNN-Margin*, respectively, as
+opposed to the SOTA’s 46.1 % [12]. Nevertheless, the challenge with
+𝑡𝑒𝑠𝑡 is only around 90 %, so evaluatthis dataset is that the ACC on 𝐷𝑖𝑛
+ing based on a TPR threshold of 95 % is relatively high, necessitating
+additional assessments for comparison.
+4.4.3. End-to-end document classification performances
+In a comprehensive document classification system in real-world
+scenarios, it involves a novelty detection step followed by correctly assigning labels to the selected documents. In such a system, apart from
+evaluating each step independently, which includes novelty detection
+and document classification, we need to assess the full pipeline when
+these two steps are combined. After rejecting out-of-distribution documents from the entire set of documents, we have a set of selected
+documents. It’s essential to have the following evaluations: (1) recall of
+known categories; (2) precision on the selected documents. Figs. 5 and 6
+respectively compare the effectiveness of AUC and Precision-Recall of
+six out-of-distribution methods when combined with five loss functions across three datasets. Fig. 7 compares the effectiveness through
+the metrics of AUC, PRE, and REC among five loss functions when
+combined with KNN* and KNN on three datasets. Finally, Table 4 provides a detailed comparison by these metrics of rejection methods for
+each important threshold of PRE corresponding to each dataset scenario. Table 5 shows the effectiveness of the best rejection method
+(KNN*) at important thresholds of PRE corresponding to each dataset
+scenario.
+Comparison by AUC and ROC Curve: Fig. 5 illustrates that the featurebased OOD methods exhibit superior TPR performance compared to
+the two logits-based methods at the same FPR. Notably, these methods achieve higher TPR values compared to the other methods when
+FPR ranges from 0 to 20 % on the private dataset and to 60 % on the
+public dataset. Among the feature-based methods, KNN demonstrates
+the highest AUC across all scenarios, with KNN* trailing slightly behind with a negligible difference in AUC. Cosine and Mahalanobis rank
+
+4.4.2. Novelty detection performances
+The effectiveness of novelty detection is evaluated based on two test
+𝑡𝑒𝑠𝑡 and 𝐷
+datasets, including 𝐷𝑖𝑛
+𝑜𝑜𝑑 . In this study, AUC is utilized for evaluation, similar to other binary classification problems. Additionally, we
+employ FPR, F1, and COV at a true positive rate of 95 % to compare
+with another method [12]. In Table 3, we compare our proposed KNN
+approach with other alternative outlier detection methods including:
+Mahalanobis [24], Cosine similarity [27], Energy [27], and Maximum
+Softmax Probability (MSP) [24]. In which, KNN*, KNN, Cosine, and
+Mahalanobis are using the embedding features of the last hidden layer,
+while the remaining methods use logits information from the output layer. The MSP method transforms logits vector into probability
+information using the softmax function.
+Overall, methods utilizing embedding features are more effective
+than those employing logits. The AUC gap between these two groups
+depends on the loss function and ranges from 2 % to 6 %, 2 % to 9 %,
+and 4 % to 8 % on the Private Small, Private Tiny, and Public RVLCDIP datasets, respectively. KNN performs better than KNN* in terms
+of novelty detection (higher AUC, lower FPR), but the difference is not
+substantial across all three scenarios. However, KNN lags behind KNN*
+7
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 4. Illustration of quartile of 1st-nearest distance score of documents grouped together by category of private datasets and RVL-CDIP [14] dataset.
+
+third and fourth on the private Small and Tiny datasets. On the Public
+RVL-CDIP dataset, Mahalanobis outperforms Cosine, although the gap
+between these two methods is not significant. With an FPR below 20 %
+in all three scenarios, both KNN and KNN* achieve similar TPRs, surpassing the other two remaining feature-based methods. Following them,
+Cosine ranks third, while Mahalanobis ranks last.
+Comparison by Precision and Recall: Fig. 6 demonstrates that the
+feature-based out-of-distribution methods exhibit superior PRE performance compared to the two logits-based methods at the same REC.
+
+At the same REC, KNN* consistently outperforms KNN in terms of the
+PRE metric when combined with five loss functions in all data scenarios. On the private datasets, KNN* achieves superior PRE compared to
+KNN, Mahalanobis, and Cosine at the same REC. In the REC range below 70 %, Mahalanobis ranks second, followed by KNN and Cosine.
+However, with REC above 70 %, this order changes to KNN in second place, followed by Cosine and Mahalanobis. On the public dataset,
+Mahalanobis outperforms the remaining methods when REC is less than
+35 %, followed by KNN*, Cosine, and KNN, respectively. However, when
+8
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Table 3
+Comparison of novelty detection results on the private small and private tiny datasets and RVL-CDIP [12,14] dataset. FPR is
+FPR@TPR95, the lower FPR value the model achieves, the better it is.
+Loss
+
+Private small
+FPR↓
+
+Private tiny
+
+AUC↑
+
+F1↑
+
+COV↑
+
+FPR↓
+
+KNN*
+
+RVL-CDIP
+
+AUC↑
+
+F1↑
+
+COV↑
+
+FPR↓
+
+KNN*
+
+AUC↑
+
+F1↑
+
+COV↑
+
+KNN*
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+10.00
+08.00
+08.00
+10.00
+02.00
+KNN
+
+98.55
+98.56
+98.29
+98.37
+98.44
+
+97.20
+97.16
+97.16
+97.25
+97.20
+
+94.01
+93.96
+93.96
+94.11
+93.97
+
+05.91
+06.24
+08.06
+07.53
+07.20
+KNN
+
+98.36
+98.02
+98.20
+98.21
+97.99
+
+96.82
+96.82
+96.63
+96.73
+96.74
+
+81.41
+81.43
+81.40
+81.46
+81.43
+
+50.73
+45.05
+52.30
+48.12
+45.84
+KNN
+
+91.73
+92.45
+91.49
+92.21
+92.56
+
+89.32
+89.46
+89.19
+89.35
+89.37
+
+82.60
+82.56
+82.53
+82.55
+82.49
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+10.00
+98.68
+06.00
+98.81
+08.00
+98.41
+10.00
+98.58
+02.00
+98.64
+Mahalanobis
+
+97.17
+97.13
+97.10
+97.24
+97.15
+
+93.97
+93.92
+93.91
+94.14
+93.92
+
+05.91
+98.50
+06.02
+98.29
+07.63
+98.29
+07.31
+98.42
+06.77
+98.37
+Mahalanobis
+
+96.77
+96.80
+96.63
+96.70
+96.66
+
+81.37
+81.40
+81.37
+81.43
+81.34
+
+45.80
+92.42
+39.87
+93.19
+48.77
+92.17
+43.16
+92.85
+39.73
+93.44
+Mahalanobis
+
+89.45
+89.64
+89.48
+89.57
+89.55
+
+82.57
+82.56
+82.69
+82.60
+82.47
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+16.00
+10.00
+10.00
+10.00
+Cosine
+
+98.07
+97.86
+98.04
+98.20
+98.12
+
+97.00
+96.82
+96.76
+97.02
+96.85
+
+93.82
+93.67
+93.58
+93.94
+93.67
+
+08.06
+08.39
+07.85
+09.78
+10.75
+Cosine
+
+98.17
+97.74
+97.98
+97.90
+97.67
+
+96.49
+96.48
+96.48
+96.30
+96.21
+
+81.28
+81.29
+81.26
+81.26
+81.23
+
+43.62
+35.58
+42.77
+41.76
+38.87
+Cosine
+
+92.19
+93.20
+92.32
+92.47
+93.05
+
+89.32
+89.52
+89.60
+89.38
+89.36
+
+82.38
+82.31
+82.62
+82.38
+82.27
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+10.00
+12.00
+08.00
+10.00
+10.00
+Energy
+
+98.36
+98.42
+98.30
+98.39
+98.45
+
+97.10
+97.05
+96.86
+97.00
+96.94
+
+93.91
+93.87
+93.67
+93.82
+93.75
+
+07.31
+09.14
+10.54
+09.68
+11.83
+Energy
+
+98.19
+97.88
+97.89
+97.87
+97.81
+
+96.58
+96.51
+96.34
+96.54
+96.27
+
+81.31
+81.37
+81.32
+81.50
+81.35
+
+45.98
+39.01
+44.80
+42.09
+38.94
+Energy
+
+92.20
+92.99
+92.21
+92.76
+93.22
+
+89.38
+89.54
+89.59
+89.48
+89.50
+
+82.51
+82.44
+82.67
+82.48
+82.40
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+12.00
+18.00
+14.00
+12.00
+MSP
+
+92.28
+93.34
+92.20
+94.96
+96.40
+
+97.12
+97.11
+96.82
+97.19
+97.05
+
+93.94
+93.92
+93.67
+94.09
+93.87
+
+22.80
+17.10
+20.97
+19.14
+12.37
+MSP
+
+89.64
+94.78
+93.00
+93.36
+94.97
+
+95.34
+95.77
+95.45
+95.72
+96.19
+
+81.31
+81.29
+81.28
+81.43
+81.32
+
+57.20
+54.56
+58.02
+53.59
+53.02
+MSP
+
+85.56
+87.28
+76.78
+87.85
+88.09
+
+88.98
+89.09
+88.94
+89.09
+88.97
+
+82.49
+82.51
+82.48
+82.48
+82.35
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+12.00
+20.00
+12.00
+10.00
+
+93.72
+94.33
+93.84
+94.43
+96.75
+
+97.14
+97.12
+96.95
+97.54
+97.11
+
+93.96
+93.94
+93.80
+94.67
+93.92
+
+16.13
+15.48
+15.48
+18.82
+13.87
+
+92.26
+95.72
+93.19
+93.90
+95.45
+
+95.94
+95.98
+95.96
+95.82
+96.20
+
+81.38
+81.35
+81.35
+81.46
+81.43
+
+65.02
+61.81
+58.74
+64.56
+65.31
+
+84.01
+86.54
+75.69
+87.24
+86.11
+
+88.64
+88.80
+88.97
+88.65
+88.49
+
+82.42
+82.46
+82.53
+82.41
+82.28
+
+REC is higher, KNN* becomes the best method, followed by KNN, Cosine,
+and Mahalanobis as the least effective.
+Comparison of loss functions: Fig. 7 illustrates that KNN* and KNN
+have the same trend when combined with five loss functions across
+all datasets; however, KNN* significantly improves precision efficiency
+at each recall compared to KNN in all scenarios. In general, Margin*
+outperforms other loss functions in most cases and is very stable.
+Specifically, when combined with KNN*, the Margin-based loss functions achieve the highest recall, followed by Weight, CE, and SCL on the
+Private Small dataset at a precision of 99.5 % or higher, respectively.
+The order remains the same at the same precision range on the Private
+Tiny dataset, the only change is that Margin achieves the highest recall
+when precision ranges from 99.5 % to 99.8 %. On the Public RVL-CDIP
+dataset at precision from 99.0 %, Margin achieves the highest recall,
+followed by SCL, CE, and lastly Margin*. However, with precision below 98.5 %, the order changes to Margin* being the best, followed by
+Margin and SCL, with CE being the last.
+Special highlights Let’s delve into the special highlights of the results, which offer crucial insights into the outcomes of the study. In
+real-practical applications, we need an algorithm to achieve high PRE to
+minimize error rate and also high COV to process as many documents as
+possible. These are the two most important indicators for applying the
+algorithm in practice. In Table 4, we compare loss functions and rejection methods at PRE equal to 99.5 %, 99.5 %, and 99.0 % for the Private
+Small, Private Tiny dataset, and Public RVL-CDIP, respectively. The table
+illustrates that the KNN-based rejection methods not only detect novel
+
+documents but also have the capability to eliminate ambiguity in classification outcomes, consequently enhancing select accuracy and achieving
+the highest REC and COV at the same PRE on all datasets.
+On the Private Small dataset, at the same PRE of 99.5 %, in terms of
+the rejection method, KNN* stands out as the most efficient, followed
+by KNN, MSP, Energy, Cosine, and finally, Mahalanobis. Regarding
+the loss function, Margin proves to be the most effective, followed by
+Weight, Margin*, CE, and SCL, respectively. Although the MahalanobisCE combination achieves the lowest FPR, KNN*-Margin proves to be
+the most effective, achieving the highest REC and COV at 97.34 %
+and 96.51 %, respectively. The next one is KNN-Margin with REC and
+COV slightly lower by only 0.17 %. Compared to KNN-based methods,
+both Mahalanobis and Cosine approaches, utilizing embedding features,
+achieve REC and COV effectiveness with a difference ranging from 1 %
+to 5 %, depending on the loss function.
+On the Private Tiny dataset, at the same PRE of 99.5 %, overall, KNN
+is the most effective rejection method, and Margin* is the most efficient
+loss function. The difference between KNN* and KNN is not significant.
+Among the rejection methods, there is a notable distinction between
+approaches using embedding features and those using on logits information. Both logits-based methods (Energy and MSP) achieve very low
+REC and COV ranging from 0–40 % and 0–34 %, respectively, while the
+remaining the features-based methods achieve high REC and COV ranging from 76–89 % and 65–76 %, respectively. KNN-Margin* achieves the
+highest REC and COV at 89.49 % and 76.79 %, respectively. Slightly less
+but not significantly different is KNN*-Margin* with metrics of 89.47 %
+9
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 5. Comparison of AUC of novelty detection results of different OOD methods on the private small, private tiny and RVL-CDIP [12,14] datasets.
+
+𝑡𝑟𝑎𝑖𝑛 for a half
+and 76.77 %, respectively. In this scenario, we only use 𝐷𝑖𝑛
+𝑡𝑒𝑠𝑡
+of the categories for training (23/47), and the final 𝐷 has 14.19 % of
+𝑡𝑒𝑠𝑡 . This means the maximum COV of end-to-end
+𝐷𝑜𝑜𝑑 and 85.81 % of 𝐷𝑖𝑛
+document classification is 85.81 %. Without novelty rejection, its PRE
+is also at most 85.81 %, which is too low for a real-world application.
+
+However, when using our proposed rejection method, the framework
+increases PRE to 99.5 % (an increase of 13.69 %), while only decreasing
+COV by 9.02 %.
+On the Public RVL-CDIP dataset, the study selected PRE level of 99.0
+𝑡𝑒𝑠𝑡 of this dataset is only about 90 %.
+because the ACC of the models on 𝐷𝑖𝑛
+10
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 6. The curve of combination of precision and recall of known categories on the private small, private tiny and RVL-CDIP [14] datasets.
+
+Overall, features-based methods significantly outperform logits-based
+methods by a large margin. These features-based rejection methods increase PRE by 10 % from about 90 % to 99 % for all models of the five
+loss functions. This is a very important result because for real-practical
+application we need a near perfect PRE at about 99 %, and an error
+rate of only 1 %. Besides, among the features-based methods, KNN*
+
+demonstrates the highest effectiveness compared to the other featuresbased methods. The KNN*-Margin combination achieves the highest
+REC and COV at 53.82 % and 50.07 %, respectively. These results are
+much higher by over 3 % compared to the remaining features-based
+methods (KNN, Mahalanobis, and Cosine) and far surpass by over 30 %
+the two logits-based methods (Energy and MSP).
+11
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Fig. 7. Comparison of AUC, precision, and recall of our end-to-end document classification of different loss functions when combining with KNN* and KNN rejection
+methods on the Private Small, Private Tiny datasets and RVL-CDIP [12,14] datasets.
+Table 4
+Comparison of novelty detection results on the private small and private tiny datasets and RVL-CDIP [12,14] dataset at the
+same precision threshold. The precision threshold is 99.5 % for the private small and private tiny datasets, and is 99.0 % for
+the public RVL-CDIP dataset. The lower FPR value the model achieves, the better it is.
+Loss
+
+Private small
+FPR↓
+
+TPR↑
+
+Private tiny
+REC↑
+
+COV↑
+
+KNN*@PRE99.5
+
+FPR↓
+
+RVL-CDIP
+
+TPR↑
+
+REC↑
+
+COV↑
+
+KNN*@PRE99.5
+
+FPR↓
+
+TPR↑
+
+REC↑
+
+COV↑
+
+KNN*@PRE99.0
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+97.72
+12.00
+97.25
+10.00
+96.46
+14.00
+97.32
+12.00
+97.22
+KNN@PRE99.5
+
+97.34
+96.88
+96.07
+96.94
+96.84
+
+96.51
+96.05
+95.25
+96.12
+96.02
+
+02.26
+89.51
+02.37
+89.53
+01.94
+87.46
+01.83
+89.40
+02.26
+88.90
+KNN@PRE99.5
+
+89.44
+89.47
+87.36
+89.28
+88.83
+
+76.74
+76.77
+74.96
+76.61
+76.22
+
+00.82
+54.30
+01.00
+51.84
+00.96
+53.82
+00.89
+49.97
+00.68
+51.42
+KNN@PRE99.0
+
+53.82
+51.40
+53.35
+49.54
+50.95
+
+50.07
+47.82
+49.64
+46.09
+47.41
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+97.55
+97.17
+12.00
+97.17
+96.79
+08.00
+95.66
+95.26
+12.00
+97.15
+96.77
+12.00
+96.96
+96.58
+Mahalanobis@PRE99.5
+
+96.34
+95.97
+94.45
+95.95
+95.76
+
+02.04
+88.94
+88.83
+02.15
+89.58
+89.49
+01.72
+86.93
+86.79
+01.94
+89.54
+89.42
+02.15
+88.76
+88.67
+Mahalanobis@PRE99.5
+
+76.22
+76.79
+74.47
+76.73
+76.09
+
+00.61
+50.36
+49.90
+00.82
+49.12
+48.69
+00.75
+50.35
+49.91
+00.71
+45.49
+45.09
+00.57
+48.19
+47.76
+Mahalanobis@PRE99.0
+
+46.43
+45.30
+46.43
+41.95
+44.43
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+94.94
+10.00
+92.94
+08.00
+92.17
+06.00
+92.22
+04.00
+92.96
+Cosine@PRE99.5
+
+94.58
+92.57
+91.79
+91.83
+92.53
+
+93.77
+91.78
+91.01
+91.05
+91.74
+
+01.72
+83.43
+02.04
+82.18
+01.61
+81.59
+02.15
+85.15
+01.94
+79.58
+Cosine@PRE99.5
+
+83.30
+82.11
+81.45
+85.08
+79.51
+
+71.48
+70.46
+69.89
+73.00
+68.23
+
+01.04
+50.60
+01.04
+48.58
+01.21
+50.24
+01.14
+48.67
+01.00
+47.32
+Cosine@PRE99.0
+
+50.17
+48.17
+49.83
+48.27
+46.92
+
+46.68
+44.82
+46.36
+44.91
+43.66
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+96.52
+12.00
+95.36
+06.00
+91.91
+10.00
+94.99
+06.00
+94.49
+Energy@PRE99.5
+
+96.14
+95.00
+91.52
+94.61
+94.08
+
+95.32
+94.20
+90.74
+93.80
+93.28
+
+01.72
+83.91
+02.15
+85.84
+01.40
+76.58
+01.83
+84.12
+01.94
+81.84
+Energy@PRE99.5
+
+83.78
+85.77
+76.44
+84.01
+81.75
+
+71.89
+73.60
+65.59
+72.09
+70.15
+
+00.89
+51.50
+00.96
+48.19
+00.93
+49.35
+01.00
+44.93
+00.64
+45.16
+Energy@PRE99.0
+
+51.05
+47.78
+48.92
+44.55
+44.75
+
+47.50
+44.46
+45.52
+41.45
+41.64
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+18.00
+97.36
+18.00
+96.31
+08.00
+86.56
+14.00
+96.45
+12.00
+96.03
+MSP@PRE99.5
+
+97.03
+95.98
+86.20
+96.09
+95.66
+
+96.20
+95.17
+85.46
+95.27
+94.84
+
+00.00
+00.57
+00.65
+22.57
+00.43
+20.20
+00.11
+03.77
+00.75
+26.61
+MSP@PRE99.5
+
+00.57
+22.57
+20.18
+03.77
+26.61
+
+00.49
+19.37
+17.32
+03.24
+22.83
+
+00.64
+16.61
+00.57
+19.85
+00.43
+05.88
+00.54
+12.42
+00.39
+12.92
+MSP@PRE99.0
+
+16.49
+19.70
+05.86
+12.34
+12.82
+
+15.34
+18.33
+05.45
+11.48
+11.93
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+20.00
+18.00
+12.00
+16.00
+16.00
+
+97.15
+96.27
+93.63
+96.65
+96.17
+
+96.32
+95.46
+92.83
+95.83
+95.35
+
+00.00
+00.86
+00.11
+00.00
+01.18
+
+00.00
+30.30
+11.51
+01.81
+40.55
+
+00.00
+26.00
+09.87
+01.56
+34.79
+
+00.00
+00.46
+00.36
+00.00
+00.00
+
+00.02
+11.44
+05.78
+00.02
+00.01
+
+00.01
+10.65
+05.38
+00.01
+00.01
+
+97.46
+96.60
+93.99
+97.00
+96.52
+
+00.00
+30.30
+11.52
+01.81
+40.55
+
+12
+
+00.02
+11.52
+05.80
+00.02
+00.01
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+Table 5
+The KNN* rejection effectiveness of the loss functions is compared at the same precision thresholds. The thresholds are 99.8 %,
+99.5 %, and 99.0 % on the private small dataset, 99.5 %, 99.0 %, and 98.5 % on the private tiny dataset, and 99.0 %, 98.5 %,
+and 98.0 % on the Public RVL-CDIP dataset.
+Loss
+
+Private small
+FPR↓
+
+TPR↑
+
+Private tiny
+REC↑
+
+COV↑
+
+@PRE99.8
+
+FPR↓
+
+RVL-CDIP
+
+TPR↑
+
+REC↑
+
+COV↑
+
+@PRE99.5
+
+FPR↓
+
+TPR↑
+
+REC↑
+
+COV↑
+
+@PRE99.0
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+02.00
+91.36
+02.00
+92.70
+00.00
+87.91
+06.00
+92.39
+02.00
+92.07
+@PRE99.5
+
+91.21
+92.55
+87.74
+92.27
+91.91
+
+90.43
+91.76
+87.00
+91.49
+91.13
+
+02.26
+89.51
+02.37
+89.53
+01.94
+87.46
+01.83
+89.40
+02.26
+88.90
+@PRE99.0
+
+89.44
+89.47
+87.36
+89.28
+88.83
+
+76.74
+76.77
+74.96
+76.61
+76.22
+
+00.82
+54.30
+01.00
+51.84
+00.96
+53.82
+00.89
+49.97
+00.68
+51.42
+@PRE98.5
+
+53.82
+51.40
+53.35
+49.54
+50.95
+
+50.07
+47.82
+49.64
+46.09
+47.41
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+12.00
+97.72
+12.00
+97.25
+10.00
+96.46
+14.00
+97.32
+12.00
+97.22
+@PRE99.0
+
+97.34
+96.88
+96.07
+96.94
+96.84
+
+96.51
+96.05
+95.25
+96.12
+96.02
+
+05.16
+94.15
+05.27
+93.46
+04.84
+92.83
+05.27
+94.04
+04.95
+92.46
+@PRE98.5
+
+94.06
+93.38
+92.71
+93.97
+92.35
+
+80.71
+80.13
+79.55
+80.63
+79.25
+
+02.29
+64.41
+02.04
+66.32
+02.18
+64.36
+01.89
+62.83
+01.79
+62.69
+@PRE98.0
+
+63.62
+65.48
+63.56
+62.03
+61.88
+
+59.19
+60.92
+59.14
+57.71
+57.57
+
+Margin
+Margin*
+SCL
+Weight
+CE
+
+32.00
+30.00
+24.00
+32.00
+38.00
+
+98.99
+98.66
+98.15
+99.00
+98.56
+
+98.28
+97.94
+97.37
+98.30
+97.91
+
+97.45
+97.11
+96.54
+97.46
+97.07
+
+07.63
+07.96
+07.85
+07.85
+07.96
+
+96.03
+95.91
+94.79
+95.25
+95.48
+
+82.41
+82.30
+81.34
+81.73
+81.93
+
+03.97
+03.57
+04.00
+03.43
+03.29
+
+69.52
+70.63
+69.22
+69.17
+68.80
+
+64.68
+65.72
+64.40
+64.36
+64.01
+
+96.23
+96.05
+94.93
+95.39
+95.61
+
+Special highlights of KNN*: Table 5 describes scenarios of error rates
+less than 2 % when using KNN* on the datasets. For the Private Small
+dataset, reducing the error rate by 0.3 % (increasing PRE from 99.5 % to
+99.8 %) results in a 4.75 % decrease in COV, from 96.51 %. Conversely,
+increasing the error rate to 1 % (PRE = 99.0 %) leads to a 0.94 % increase in COV, but the FPR is very high at 32 %. This implies that, for this
+dataset, we should choose PRE threshold of 99.5 % to ensure a balance
+between FPR, PRE, and COV. Similarly, on the Private Tiny dataset, the
+most appropriate PRE threshold is 99.0 %, with a corresponding COV
+of 80.71 %, Compared to the model without a rejection module, it increases PRE by 13.19 % (85.81 % vs 99.0 %) and reduces COV by 5.1 %
+(85.81 % vs 80.71 %). Finally, for the Public RVL-CDIP dataset, PRE
+thresholds of 98.5 % and 98.0 % both yield very suitable COV and FPR,
+at 60.92 % & 2.04 % and 65.72 % & 3.57 %, respectively.
+
+70.64
+71.80
+70.33
+70.33
+69.95
+
+KNN*-Margin combination achieves the best results on the Private Small
+dataset, with FPR, PRE, REC and COV at 12.00 %, 99.50 %, 97.34 %,
+and 96.51 %, respectively. On the Private Tiny dataset, the KNN*-Margin
+combination performs the best metrics at 5.16 %, 99.00 %, 94.06 %, and
+80.71 %, respectively. On public RVL-CDIP dataset, the KNN*-Margin*
+combination achieves the highest metrics at 2.04 %, 98.50 %, 65.48 %,
+and 60.92 %, respectively.
+Finally, the KNN-Margin* combination achieves an AUC of 93.19 %
+and FPR@TPR95 of 39.87 %, representing a 0.89 % improvement in
+AUC score and a significant 6.23 % reduction in FPR score compared to
+the current state-of-the-art [12] on the public RVL-CDIP dataset.
+
+5. Conclusion
+This study proposes an end-to-end document classification framework with both novelty and ambiguity rejection. We propose a custom
+Margin-based contrastive loss function as a deep metric learning method
+to optimize neural networks and compress knowledge. This is the first
+study exploring the combination of text-based classifiers and KNN algorithm for not only novelty detection but also ambiguity rejection. Our
+study demonstrates the efficacy of embedding feature distances of the
+𝑘th nearest neighbor for out-of-distribution detection on administrative
+documents. The most significant insights are that high-quality embedding features and a suitable distance measure are two indispensable
+key factors for novelty and ambiguity rejection. Indeed, when combined
+with custom contrastive loss, KNN improves the effectiveness of novelty
+detection and ambiguity rejection, achieving very high PRE, REC and
+COV levels that are entirely applicable in real-world scenarios. Our experiment illustrates that on the Private Small dataset, the KNN*-Margin
+combination achieves the highest effectiveness with PRE, REC and COV
+of 99.50 %, 97.34 % and 96.51 %, respectively. Meanwhile, on the
+Private Tiny dataset, KNN*-Margin outperforms with these metrics at
+99.00 %, 94.06 % and 80.71 %, while utilizing only half of the categories
+in the training set and having over 14 % of the final 𝐷𝑡𝑒𝑠𝑡 as 𝐷𝑜𝑜𝑑 , mean𝑡𝑒𝑠𝑡 to increase PRE to 99.00 % or reduce
+ing it only loses about 5 % of 𝐷𝑖𝑛
+the error to just 1 %. Last but not least, the proposed method is scalable.
+When evaluated on the public RVL-CDIP dataset with classifiers having
+only 90 % accuracy, it also surpasses other rejection methods, excelling
+not only in novelty rejection but especially in ambiguity rejection. The
+proposed method increases PRE to 99.0 %, a level that can be used in
+real applications, while maintaining COV at 50.07 %. It also achieves
+
+4.5. Discussion
+This study has thoroughly evaluated a comprehensive algorithm for
+real-world document classification problem. The research has conducted
+a thorough assessment of numerous out-of-distribution methods and loss
+functions across three scenarios using both private and public datasets.
+The research findings indicate that the contrastive loss function effectively compacts knowledge during training, consequently enhancing
+the performance of out-of-distribution detection. The last hidden layer’s
+features contain more valuable information than logits of the output
+layer for novelty detection problem. All embedding feature-based methods demonstrate superior novelty detection performance compared to
+methods utilizing the logits information. Among them, the KNN-based
+methods not only emerge as the best novelty detection algorithm but
+also effectively eliminate ambiguous results, leading to a significant increase in PRE to nearly perfect levels, exceeding 99.50 % on the private
+datasets and achieving an approximately 9 % improvement on the public RVL-CDIP dataset. This result indicates that the correlation between
+a given document and its nearest neighbors from the training set provides valuable information for detecting novel documents and rejecting
+ambiguous documents. In terms of end-to-end document classification,
+KNN* stands out as the most efficient. KNN* removes ambiguous results when there is inconsistency between KNN output and logits output.
+Therefore, it improves precision and recall of known categories.
+When combined with Margin-based loss functions, the KNN-based
+detection methods achieve the best performance in three scenarios. The
+13
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+
+state-of-the-art novelty detection results with an AUC of 93.19 % and an
+FPR@TPR95 of 39.87 %.
+However, there are various aspects that could be further improved
+in our method. Firstly, novelty rejection methods currently use a global
+threshold that is not optimized for each category. Overall, the categories are optimized similarly, and the variance and standard deviation
+of these 𝑘th NN distances are not significantly different, as observed in
+public datasets. However, there may still be some categories with relatively large variances, as seen in the case of private datasets. Therefore,
+optimizing the threshold per category will lead to an increase in rejection effectiveness, although the algorithm and evaluation process will
+be more complex. Secondly, the margin-based contrastive loss function
+could be further fine-tuned for better knowledge compactness, requiring
+more time and GPU resources for a more detailed evaluation. Finally,
+the proposed algorithm may be applied to different datasets and neural network architectures, and further experimentation is needed in the
+future.
+
+[6] S. Bakkali, Z. Ming, M. Coustaty, M. Rusiñol, O.R. Terrades, Vlcdoc: vision-language
+contrastive pre-training model for cross-modal document classification, Pattern
+Recognit. 139 (2023) 109419, https://doi.org/10.1016/j.patcog.2023.109419.
+[7] X. Yang, X. Yiheng, L. Tengchao, C. Lei, W. Furu, W. Guoxin, L. Yijuan, F. Dinei,
+Z. Cha, C. Wanxiang, Z. Min, Z. Lidong, LayoutLMv2: multi-modal pre-training for
+visually-rich document understanding, in: Proceedings of ACL-IJCNLP, 2021, pp.
+2579–2591, https://doi.org/10.18653/v1/2021.acl-long.201.
+[8] P. Li, J. Gu, J. Kuen, V.I. Morariu, H. Zhao, R. Jain, V. Manjunatha, H. Liu,
+SelfDoc: self-supervised document representation learning, in: Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2021,
+pp. 5648–5656 https://doi.org/10.1109/CVPR46437.2021.00560.
+[9] H. Cevikalp, B. Uzun, Y. Salk, H. Saribas, O. Köpüklü, From anomaly detection to
+open set recognition: bridging the gap, Pattern Recognit. 138 (2023) 109385, https:
+//doi.org/10.1016/j.patcog.2023.109385.
+[10] H. Huang, Y. Wang, Q. Hu, M.-M. Cheng, Class-specific semantic reconstruction for
+open set recognition, IEEE Trans. Pattern Anal. Mach. Intell. 45 (2023) 4214–4228,
+https://doi.org/10.1109/TPAMI.2022.3200384.
+[11] Y. Sun, Y. Ming, X. Zhu, Y. Li, Out-of-distribution detection with deep nearest neighbors, in: Proceedings of the 39th International Conference on Machine Learning
+(ICML) (2022).
+[12] S. Larson, G. Lim, Y. Ai, D. Kuang, K. Leach, Evaluating out-of-distribution performance on document image classifiers, in: Proceedings of the Conference on
+Neural Information Processing Systems (NeurIPS) Track on Datasets and Benchmarks
+(2022).
+[13] T.C. Pham, M. Coustaty, A. Joseph, V.P. d’Andecy, M. Visani, N. Sidere, Incremental
+learning and ambiguity rejection for document classification, in: Proceedings of the
+International Conference on Document Analysis and Recognition (ICDAR) (2023).
+[14] A.W. Harley, A. Ufkes, K.G. Derpanis, Evaluation of deep convolutional nets for
+document image classification and retrieval, in: Proceedings of the International
+Conference on Document Analysis and Recognition (ICDAR) (2015) https://doi.org/
+10.1109/ICDAR.2015.7333910.
+[15] S. Bakkali, Z. Ming, M. Coustaty, M. Rusiñol, EAML: ensemble self-attentionbased mutual learning network for document image classification, Int. J. Doc.
+Anal. Recognit. (IJDAR) 24 (2021) 251–268, https://doi.org/10.1007/s10032-02100378-0.
+[16] I.S. Mahamoud, J. Voerman, M. Coustaty, P.A. Joseph, V.P. d’Andecy, J.M. Ogier,
+Multimodal attention-based learning for imbalanced corporate documents classification, in: Proceedings of the International Conference on Document Analysis and
+Recognition (ICDAR) (2021).
+[17] Y. Xu, M. Li, L. Cui, S. Huang, F. Wei, M. Zhou, LayoutLM: pre-training of text
+and layout for document image understanding, in: Proceedings of the 26th ACM
+SIGKDD International Conference on Knowledge Discovery & Data Mining, 2020,
+pp. 1192–1200, https://doi.org/10.1145/3394486.3403172.
+[18] R. Tal, H. Yedid, Mean-shifted contrastive loss for anomaly detection, in: AAAI
+Conference on Artificial Intelligence (AAAI) (2023).
+[19] L.A. Souto Arias, C.W. Oosterlee, P. Cirillo, Aida: analytic isolation and distancebased anomaly detection algorithm, Pattern Recognit. 141 (2023) 109607, https:
+//doi.org/10.1016/j.patcog.2023.109607.
+[20] J. Tu, H. Liu, C. Li, Weighted subspace anomaly detection in high-dimensional
+space, Pattern Recognit. 146 (2024) 110056, https://doi.org/10.1016/j.patcog.
+2023.110056.
+[21] K. Lee, K. Lee, H. Lee, J. Shin, A simple unified framework for detecting out-ofdistribution samples and adversarial attacks, in: Proceedings of the Conference on
+Neural Information Processing Systems (NeurIPS) (2018).
+[22] L. Bergman, Y. Hoshen, Classification-based anomaly detection for general data, in:
+Proceedings of the International Conference for Learning Representations (ICLR)
+(2020).
+[23] H. Cevikalp, B. Uzun, O. Köpüklü, G. Ozturk, Deep compact polyhedral conic classifier for open and closed set recognition, Pattern Recognit. 119 (2021) 108080,
+https://doi.org/10.1016/j.patcog.2021.108080.
+[24] D. Hendrycks, K. Gimpel, A baseline for detecting misclassified and out-ofdistribution examples in neural networks, in: Proceedings of the International
+Conference for Learning Representations (ICLR) (2017).
+[25] L. Shu, H. Xu, B. Liu, Doc: deep open classification of text documents, in: Proceedings
+of the Conference on Empirical Methods in Natural Language Processing (EMNLP)
+(2017).
+[26] H.M. Yang, X.Y. Zhang, F. Yin, Q. Yang, C.L. Liu, Convolutional prototype network for open set recognition, IEEE Trans. Pattern Anal. Mach. Intell. 44 (2022)
+2358–2370, https://doi.org/10.1109/TPAMI.2020.3045079.
+[27] W. Liu, X. Wang, J.D. Owens, Y. Li, Energy-based out-of-distribution detection, in:
+Proceedings of the Conference on Neural Information Processing Systems (NeurIPS)
+(2020).
+[28] H. Cho, C. Park, J. Kang, K.M. Yoo, T. Kim, S. Goo Lee, Enhancing out-ofdistribution detection in natural language understanding via implicit layer ensemble,
+in: the Findings of the Association for Computational Linguistics: EMNLP, 2022, pp.
+783–798, https://doi.org/10.18653/v1/2022.findings-emnlp.55.
+[29] Y. Wu, K. He, Y. Yan, Q. Gao, Z. Zeng, F. Zheng, L. Zhao, H. Jiang, W. Wu, W.
+Xu, Revisit overconfidence for OOD detection: reassigned contrastive learning with
+adaptive class-dependent threshold, in: Proceedings of the Conference of the North
+American Chapter of the Association for Computational Linguistics (2022) https:
+//doi.org/10.18653/v1/2022.naacl-main.307.
+[30] W. Zhou, F. Liu, M. Chen, Contrastive out-of-distribution detection for pretrained
+transformers, in: Proceedings of the Conference on Empirical Methods in Natural
+Language Processing (EMNLP) (2021) https://doi.org/10.18653/v1/2021.emnlpmain.84.
+
+CRediT authorship contribution statement
+Tri-Cong Pham: Writing – review & editing, Writing – original
+draft, Visualization, Validation, Methodology, Formal analysis, Data
+curation, Conceptualization. Mickaël Coustaty: Writing – review &
+editing, Supervision, Resources, Project administration, Methodology,
+Investigation, Funding acquisition, Conceptualization. Antoine Doucet:
+Writing – review & editing, Validation, Supervision, Methodology,
+Conceptualization. Aurélie Joseph: Writing – review & editing,
+Validation, Supervision, Methodology, Investigation, Data curation,
+Conceptualization. Vincent Poulain d’Andecy: Writing – review & editing, Validation, Supervision, Methodology, Funding acquisition, Data
+curation, Conceptualization.
+Declaration of competing interest
+The authors declare that they have no known competing financial
+interests or personal relationships that could have appeared to influence
+the work reported in this paper.
+Acknowledgments
+This work was supported by the French government through the
+France Relance program and the ANR under grant number ANR-21PRRD-0010-01, as well as by the YOOZ company. We also would like
+to thank Guénael Manic, Mohamed Saadi, Jonathan Ouellet and Jérôme
+Lacour from YOOZ for their support.
+Data availability
+This study uses both public and private datasets. The public dataset
+is available at https://huggingface.co/datasets/aharley/rvl_cdip. The
+private dataset cannot be shared due to data privacy policies
+References
+[1] J. Devlin, M.W. Chang, K. Lee, K. Toutanova, BERT: pre-training of deep bidirectional transformers for language understanding, in: Proceedings of NAACL-HLT,
+2019, pp. 4171–4186.
+[2] H. Le, L. Vial, J. Frej, V. Segonne, M. Coavoux, B. Lecouteux, A. Allauzen, B. Crabbé,
+L. Besacier, D. Schwab, FlauBERT: unsupervised language model pre-training
+for French, in: Proceedings of the Twelfth Language Resources and Evaluation
+Conference (LREC), 2020, pp. 2479–2490.
+[3] A. Krizhevsky, I. Sutskever, G.E. Hinton, Imagenet classification with deep convolutional neural networks, in: Proceedings of the Conference on Neural Information
+Processing Systems (NeurIPS) (2012).
+[4] Y. Huang, T. Lv, L. Cui, Y. Lu, F. Wei, LayoutLMv3: pre-training for document ai with unified text and image masking, in: Proceedings of the 30th ACM
+International Conference on Multimedia, 2022, pp. 4083–4091, https://doi.org/10.
+1145/3503161.3548112.
+[5] S. Appalaraju, B. Jasani, B.U. Kota, Y. Xie, R. Manmatha, DocFormer: end-toend transformer for document understanding, in: Proceedings of the IEEE/CVF
+International Conference on Computer Vision (ICCV), 2021, pp. 973–983, https:
+//doi.org/10.1109/ICCV48922.2021.00103.
+
+14
+
+Neurocomputing 653 (2025) 131241
+
+T.-C. Pham, M. Coustaty, A. Doucet et al.
+[31] B. Gunel, J. Du, A. Conneau, V. Stoyanov, Supervised contrastive learning for pretrained language model fine-tuning, in: Proceedings of the International Conference
+for Learning Representations (ICLR) (2021).
+[32] P. Liu, Z. Liu, Y. Lang, S. Liu, Q. Zhou, Q. Li, Deep metric learning assisted by intravariance in a semi-supervised view of learning, Eng. Appl. Artif. Intell. 131 (2024)
+107885, https://doi.org/10.1016/j.engappai.2024.107885.
+[33] J. Park, J. Hong, J. Kwon, End-to-end metric learning from corrupted images using
+triplet dimensionality reduction loss, Expert Syst. Appl. 238 (2024) 122064, https:
+//doi.org/10.1016/j.eswa.2023.122064.
+[34] X. Dong, J. Shen, Triplet loss in siamese network for object tracking, in: Proceedings
+of the European Conference on Computer Vision (ECCV) (2018).
+[35] P. Khosla, P. Teterwak, C. Wang, A. Sarna, Y. Tian, P. Isola, A. Maschinot, C. Liu,
+D. Krishnan, Supervised contrastive learning, in: Proceedings of the Conference on
+Neural Information Processing Systems (NeurIPS) (2020).
+[36] T. Chen, S. Kornblith, M. Norouzi, G. Hinton, A simple framework for contrastive learning of visual representations, in: Proceedings of the 37th International
+Conference on Machine Learning (ICML) (2020).
+[37] J. Bromley, I. Guyon, Y. LeCun, E. Sackinger, R. Shah, Signature verification using
+a “siamese” time delay neural network, in: Proceedings of the Conference on Neural
+Information Processing Systems (NeurIPS) (1993).
+[38] S. Chopra, R. Hadsell, Y. LeCun, Learning a similarity metric discriminatively, with
+application to face verification, in: Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR) (2005).
+[39] F. Schroff, D. Kalenichenko, J. Philbin, Facenet: a unified embedding for face recognition and clustering, in: Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR) (2015).
+[40] H. Wang, J. Cao, Z.L. Shi, C.S. Leung, R. Feng, W. Cao, Y. He, Image classification
+on hypersphere loss, IEEE Trans. Ind. Inf. (2024) 1–11, https://doi.org/10.1109/TII.
+2023.3347759.
+[41] M. Douze, A. Guzhva, C. Deng, J. Johnson, G. Szilvasy, P.-E. Mazaré, M. Lomeli, L.
+Hosseini, H. Jégou, The faiss library (2024), https://github.com/facebookresearch/
+faiss.
+
+Mickaël Coustaty received his MSc degree from La Rochelle
+University, after working on symbol recognition using structural signature. He received his PhD degree in computer
+science from the La Rochelle University in 2011. He has
+been an Associate Professor in computer science with the L3i
+Laboratory, La Rochelle University. He is also the Director
+of the IDEAS LabCom, a joint laboratory in partnership between the L3i laboratory and the Yooz company. His main
+research interests include multimodal, multilingual content
+analysis and recognition.
+Antoine Doucet received his PhD degree in computer science from the University in Helsinki, Finland, in 2005, and
+the French Research Supervision Habilitation (HDR) degree,
+in 2012. He has been a Full Professor in computer science with
+the L3i Laboratory, La Rochelle University, since 2014. He is
+also the Director of the ICT Department, University of Science
+and Technology of Hanoi. He leads the Research Group, La
+Rochelle, in document analysis, digital contents, and images.
+
+Aurëlie Joseph received her MSc degree in computer science
+in 2009, and her PhD degree in computer science in 2013
+from the Paris 13 University, respectively. She is currently the
+Innovation Lab Team Leader of the Yooz company. Her main
+research interests include document analysis, document classification, information extraction, business intelligence. She
+has published numerous research articles in the field of document analysis in high-ranking international conferences and
+journals.
+
+Author biography
+
+Vincent Poulain d’Andecy received his PhD degree in computer science from the La Rochelle University in 2021. He is
+currently the manager of Research & Technologies department
+of the Yooz company. His research interests include document
+analysis, document classification, information extraction, text
+mining and intelligence automation. He has published numerous research articles in the field of document analysis in
+high-ranking international conferences and journals.
+
+Tri-Cong Pham received his MSc degree in computer science
+from the Hanoi University of Science and Technology in 2013
+and his PhD degree in computer science from the University
+of Science and Technology of Hanoi in 2021, respectively.
+He is currently a researcher at L3i Laboratory, La Rochelle
+University, France. He has published numerous research articles in the field of document analysis and medical image
+processing. His research interests include computer vision,
+document analysis, and artificial intelligence.
+
+15
+
+

@@ -1,0 +1,19 @@
+.venv
+.venv_new
+.vscode
+.git
+.idea
+.claude
+checkpoints
+rvl-cdip-box
+rvl-cdip-o-box
+rvl-cdip-text
+rvl-cdip
+rvl-cdip-o
+rvl-cdip-o.rar
+rvl-cdip-o-text
+src/__pycache__
+__pycache__
+
+#Ignore vscode AI rules
+.github

@@ -1,0 +1,23 @@
+Necessary packages:
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install transformers datasets tokenizers numpy scikit-learn tqdm faiss-cpu
+
+
+
+
+From PyCharm terminal:
+
+Train (debug)
+python src/train.py --project_root "F:\Project" --save_dir checkpoints
+
+Evaluate (KNN, no agreement)
+python src/evaluate.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star_debug.pt
+
+Evaluate (KNN* with consensus agreement)
+python src/evaluate.py --project_root "F:\Project" --ckpt checkpoints\bert_margin_star_debug.pt --use_knn_star
+
+
+
+
+
+

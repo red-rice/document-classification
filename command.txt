@@ -1,0 +1,71 @@
+Text-only:
+Train model:
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use cpu --train_samples 5000 --val_samples 1000
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 50000 --val_samples 6250
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 100000 --val_samples 12500
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples full --val_samples full
+
+Classification result:
+python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use cpu --test_samples 1000
+python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples 6250
+python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples 12500
+python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples full
+
+Novelty detection result:
+python src/novelty_detection_result.py --project_root "F:\Project" --ckpt_dir checkpoints --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --tpr 0.95
+python src/novelty_detection_result.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --tpr 0.95
+python src/novelty_detection_result.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --tpr 0.95
+python src/novelty_detection_result.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples full --val_samples full --test_samples full --tpr 0.95
+
+Precision-threshold:
+python src/novelty_detection_result_99PRE.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --target_pre 99.0
+python src/novelty_detection_result_99PRE.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --target_pre 99.0
+python src/novelty_detection_result_99PRE.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --target_pre 99.0
+python src/novelty_detection_result_99PRE.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples full --val_samples full --test_samples full --target_pre 99.0
+
+# Scan all checkpoints in dir
+python src/novelty_detection_result_99PRE.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples full --val_samples full --test_samples full
+
+Rejection effectiveness:
+python src/rejection_effectiveness.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --target_pre 99.0
+python src/rejection_effectiveness.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --target_pre 99.0
+python src/rejection_effectiveness.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --target_pre 99.0
+python src/rejection_effectiveness.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --train_samples full --val_samples full --test_samples full --target_pre 99.0
+
+
+
+Multimodal:
+train model:
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use cpu --train_samples 5000 --val_samples 1000
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 50000 --val_samples 6250
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 100000 --val_samples 12500
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples full --val_samples full
+
+
+Classification result:
+python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use cpu --test_samples 1000
+python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples 6250
+python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples 12500
+python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples full
+
+Novelty detection result:
+python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --tpr 0.95
+python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --tpr 0.95
+python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --tpr 0.95
+python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples full --val_samples full --test_samples full --tpr 0.95
+
+
+# PRE targets
+python src/novelty_detection_result_99PRE_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --target_pre 99.0
+python src/novelty_detection_result_99PRE_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --target_pre 99.0
+python src/novelty_detection_result_99PRE_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --target_pre 99.0
+python src/novelty_detection_result_99PRE_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples full --val_samples full --test_samples full --target_pre 99.0
+
+# Scan all checkpoints
+python src/novelty_detection_result_99PRE_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples full --val_samples full --test_samples full
+
+Rejection effectiveness:
+python src/rejection_effectiveness_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --target_pre 99.0
+python src/rejection_effectiveness_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --target_pre 99.0
+python src/rejection_effectiveness_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples 100000 --val_samples 12500 --test_samples 12500 --target_pre 99.0
+python src/rejection_effectiveness_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --train_samples full --val_samples full --test_samples full --target_pre 99.0
