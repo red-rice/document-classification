@@ -48,6 +48,9 @@ python src/classification_result_multimodal.py --project_root "F:\Project" --ckp
 python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples 12500
 python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples full
 
+python src/classification_eval_multimodal.py --project_root "F:\Project" --ckpt checkpoints\layoutlmv3_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250
+
+
 Novelty detection result:
 python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --tpr 0.95
 python src/novelty_detection_result_multimodal.py --project_root "F:\Project" --ckpt_dir checkpoints --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250 --tpr 0.95
