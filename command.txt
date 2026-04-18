@@ -2,7 +2,8 @@ Text-only:
 Train model:
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use cpu --train_samples 5000 --val_samples 1000
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 50000 --val_samples 6250
-python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 100000 --val_samples 12500
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 30000 --val_samples 3750
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 10000 --val_samples 1250
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples full --val_samples full
 
 Classification result:
@@ -10,6 +11,12 @@ python src/classification_result.py --project_root "F:\Project" --ckpt checkpoin
 python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples 6250
 python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples 12500
 python src/classification_result.py --project_root "F:\Project" --ckpt checkpoints/bert_margin_star.pt --use gpu --test_samples full
+
+Classification Results:
+python src/classification_eval.py --project_root "F:\Project" --ckpt checkpoints\bert_margin_star_50k.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250
+python src/classification_eval.py --project_root "F:\Project" --ckpt checkpoints\bert_margin_star_30k.pt --use gpu --train_samples 30000 --val_samples 3750 --test_samples 3750
+python src/classification_eval.py --project_root "F:\Project" --ckpt checkpoints\bert_margin_star_10k.pt --use gpu --train_samples 10000 --val_samples 1250 --test_samples 1250
+
 
 Novelty detection result:
 python src/novelty_detection_result.py --project_root "F:\Project" --ckpt_dir checkpoints --use cpu --train_samples 5000 --val_samples 1000 --test_samples 1000 --tpr 0.95
@@ -38,7 +45,8 @@ Multimodal:
 train model:
 python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use cpu --train_samples 5000 --val_samples 1000
 python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 50000 --val_samples 6250
-python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 100000 --val_samples 12500
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 30000 --val_samples 3750
+python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 10000 --val_samples 1250
 python src/train_multimodal.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples full --val_samples full
 
 
@@ -48,7 +56,10 @@ python src/classification_result_multimodal.py --project_root "F:\Project" --ckp
 python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples 12500
 python src/classification_result_multimodal.py --project_root "F:\Project" --ckpt checkpoints/layoutlmv3_margin_star.pt --use gpu --test_samples full
 
-python src/classification_eval_multimodal.py --project_root "F:\Project" --ckpt checkpoints\layoutlmv3_margin_star.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250
+Classification Results:
+python src/classification_eval_multimodal.py --project_root "F:\Project" --ckpt checkpoints\layoutlmv3_margin_star_50k.pt --use gpu --train_samples 50000 --val_samples 6250 --test_samples 6250
+python src/classification_eval_multimodal.py --project_root "F:\Project" --ckpt checkpoints\layoutlmv3_margin_star_30k.pt --use gpu --train_samples 30000 --val_samples 3750 --test_samples 3750
+python src/classification_eval_multimodal.py --project_root "F:\Project" --ckpt checkpoints\layoutlmv3_margin_star_10k.pt --use gpu --train_samples 10000 --val_samples 1250 --test_samples 1250
 
 
 Novelty detection result:
