@@ -1,0 +1,28 @@
+{
+  "split": {
+    "train_samples": 10000,
+    "val_samples": 1250,
+    "test_samples": 1250
+  },
+  "checkpoint": "checkpoints\\layoutlmv3_margin_star_10k.pt",
+  "validation": {
+    "ACC": 78.56,
+    "wPRE": 79.33683675526953,
+    "mREC": 78.53099343067652,
+    "correct_predictions": 982,
+    "total_samples": 1250,
+    "error_rate": 21.439999999999998,
+    "val_loss": 0.9944667236328125,
+    "validation_error": 21.439999999999998
+  },
+  "test": {
+    "ACC": 77.52,
+    "wPRE": 78.17313847461676,
+    "mREC": 77.79140532273715,
+    "correct_predictions": 969,
+    "total_samples": 1250,
+    "error_rate": 22.480000000000004,
+    "test_loss": 1.0160638381958007,
+    "test_error": 22.480000000000004
+  }
+}

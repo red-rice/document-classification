@@ -150,7 +150,9 @@ def main():
     test_y, test_pred, test_loss = run_inference_with_loss(model, test_loader, device)
 
     val_metrics = compute_metrics(val_y, val_pred)
+    val_metrics["val_loss"] = val_loss
     test_metrics = compute_metrics(test_y, test_pred)
+    test_metrics["test_loss"] = test_loss
 
     save_dir = Path(args.save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -168,7 +170,8 @@ def main():
     print(f"wPRE = {test_metrics['wPRE']:.2f}")
     print(f"mREC = {test_metrics['mREC']:.2f}")
     print(f"Correct predictions = {test_metrics['correct_predictions']}")
-    print(f"Test loss = {test_loss:.6f}")
+    # print(f"Test loss = {test_loss:.6f}")
+    print(f"Test loss = {test_metrics['test_loss']:.6f}")
     print(f"Test error = {test_metrics['error']:.2f}")
 
     print("\nValidation:")
@@ -176,7 +179,8 @@ def main():
     print(f"wPRE = {val_metrics['wPRE']:.2f}")
     print(f"mREC = {val_metrics['mREC']:.2f}")
     print(f"Correct predictions = {val_metrics['correct_predictions']}")
-    print(f"Validation loss = {val_loss:.6f}")
+    # print(f"Validation loss = {val_loss:.6f}")
+    print(f"Validation loss = {val_metrics['val_loss']:.6f}")
     print(f"Validation error = {val_metrics['error']:.2f}")
 
 
