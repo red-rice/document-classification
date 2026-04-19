@@ -162,7 +162,7 @@ def main():
     np.save(save_dir / f"{stem}_y_true.npy", np.array(test_y))
     np.save(save_dir / f"{stem}_y_pred_text.npy", np.array(test_pred))
 
-    print("\nFINAL SPLIT:")
+    print("\nSPLIT:")
     print(f"{train_limit} / {val_limit} / {test_limit}")
 
     print("\nText-only Test:")
