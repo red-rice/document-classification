@@ -2,6 +2,7 @@ Text-only:
 Train model:
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use cpu --train_samples 5000 --val_samples 1000
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 50000 --val_samples 6250
+python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 40000 --val_samples 5000
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 30000 --val_samples 3750
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples 10000 --val_samples 1250
 python src/train.py --project_root "F:\Project" --save_dir checkpoints --loss margin_star --use gpu --train_samples full --val_samples full
